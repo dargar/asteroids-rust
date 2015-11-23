@@ -1,3 +1,5 @@
+extern crate gl;
+extern crate libc;
 extern crate sdl2;
 
 mod asteroids;
@@ -13,9 +15,12 @@ fn main() {
     let video = context.video()
         .expect("Could not create SDL2 video subsystem.");
     let window = video.window("Asteroids", 800, 600)
+        .opengl()
         .position_centered()
         .build()
         .expect("Could not build SDL2 window.");
+
+    gl::load_with(|s| video.gl_get_proc_address(s) as *const libc::c_void);
 
     let mut asteroids = asteroids::Asteroids::new();
 
@@ -25,12 +30,14 @@ fn main() {
             .map(|e| translate_sdl2_event(e))
             .collect::<Vec<char>>();
         asteroids::update_and_render(&mut asteroids, &input);
+        window.gl_swap_window();
         std::thread::sleep_ms(100);
     }
 }
 
 fn translate_sdl2_event(event: Event) -> char {
     match event {
+        Event::Quit {..} => 'q',
         Event::KeyDown {scancode: Some(Scancode::Q), ..} => 'q',
         _ => ' ',
     }
