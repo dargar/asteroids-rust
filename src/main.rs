@@ -1,8 +1,10 @@
+extern crate cgmath;
 extern crate gl;
 extern crate libc;
 extern crate sdl2;
 
 mod asteroids;
+mod render;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
@@ -19,8 +21,21 @@ fn main() {
         .position_centered()
         .build()
         .expect("Could not build SDL2 window.");
-
+    let gl_context = window.gl_create_context()
+        .expect("Could not create OpenGL context.");
+    window.gl_make_current(&gl_context)
+        .expect("Could not make OpenGL context current.");
     gl::load_with(|s| video.gl_get_proc_address(s) as *const libc::c_void);
+
+    let vs = include_str!("vertex_shader.glsl");
+    let fs = include_str!("fragment_shader.glsl");
+    let program = render::create_program(vs, fs);
+
+    unsafe {
+        gl::ClearColor(0.0, 0.0, 0.0, 1.0);
+        gl::Viewport(0, 0, 800, 600);
+        gl::UseProgram(program);
+    }
 
     let mut asteroids = asteroids::Asteroids::new();
 
@@ -31,7 +46,7 @@ fn main() {
             .collect::<Vec<char>>();
         asteroids::update_and_render(&mut asteroids, &input);
         window.gl_swap_window();
-        std::thread::sleep_ms(100);
+        std::thread::sleep_ms(25);
     }
 }
 
