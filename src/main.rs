@@ -4,6 +4,7 @@ extern crate libc;
 extern crate sdl2;
 
 mod asteroids;
+mod entity;
 mod render;
 
 use sdl2::event::Event;
@@ -46,7 +47,7 @@ fn main() {
             .collect::<Vec<char>>();
         asteroids::update_and_render(&mut asteroids, &input);
         window.gl_swap_window();
-        std::thread::sleep_ms(25);
+        std::thread::sleep_ms(16);
     }
 }
 
@@ -54,6 +55,9 @@ fn translate_sdl2_event(event: Event) -> char {
     match event {
         Event::Quit {..} => 'q',
         Event::KeyDown {scancode: Some(Scancode::Q), ..} => 'q',
+        Event::KeyDown {scancode: Some(Scancode::W), ..} => 'w',
+        Event::KeyDown {scancode: Some(Scancode::A), ..} => 'a',
+        Event::KeyDown {scancode: Some(Scancode::D), ..} => 'd',
         _ => ' ',
     }
 }
