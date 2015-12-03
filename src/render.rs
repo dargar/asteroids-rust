@@ -57,12 +57,7 @@ pub fn create_program(vs_src: &str, fs_src: &str) -> u32 {
     }
 }
 
-pub fn create_object(location: u32) -> u32 {
-    let vertices = vec![
-         0.0f32, -0.5f32, 0.0f32, 1.0f32,
-        -0.5f32,  0.5f32, 0.0f32, 1.0f32,
-         0.5f32,  0.5f32, 0.0f32, 1.0f32,
-    ];
+pub fn create_object(location: u32, vertices: &[f32]) -> u32 {
     unsafe {
         let mut vao = 0;
         gl::GenVertexArrays(1, &mut vao);

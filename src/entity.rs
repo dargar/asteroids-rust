@@ -12,6 +12,9 @@ pub enum Component {
     Position,
     Velocity,
     Direction,
+    Model,
+    Scale,
+    Lifetime,
 }
 
 pub struct Entity {
@@ -42,6 +45,12 @@ impl Entity {
         let direction = state.add_direction(0.0);
         entity.components.insert(Component::Direction, direction);
 
+        let model = state.add_model((1, 3));
+        entity.components.insert(Component::Model, model);
+
+        let scale = state.add_scale(Vector4::new(25.0, 50.0, 0.0, 1.0));
+        entity.components.insert(Component::Scale, scale);
+
         entity
     }
 
@@ -68,6 +77,41 @@ impl Entity {
         let velocity = state.add_velocity(acceleration);
         entity.components.insert(Component::Velocity, velocity);
 
+        let model = state.add_model((3, 10));
+        entity.components.insert(Component::Model, model);
+
+        let scale = state.add_scale(Vector4::new(50.0, 50.0, 0.0, 1.0));
+        entity.components.insert(Component::Scale, scale);
+
+        entity
+    }
+
+    pub fn projectile(state: &mut EntityState, pos: Vector4<f32>, dir: f32) -> Entity {
+        let mut entity = Entity::new(state.next_id());
+
+        let position = state.add_position(pos);
+        entity.components.insert(Component::Position, position);
+
+        let direction = state.add_direction(dir);
+        entity.components.insert(Component::Direction, direction);
+
+        let mut acceleration: Vector4<f32> = Vector4::zero();
+        acceleration.x += cgmath::sin(cgmath::deg(dir));
+        acceleration.y += -cgmath::cos(cgmath::deg(dir));
+        acceleration = acceleration * 200.0;
+        
+        let velocity = state.add_velocity(acceleration);
+        entity.components.insert(Component::Velocity, velocity);
+
+        let model = state.add_model((2, 4));
+        entity.components.insert(Component::Model, model);
+
+        let scale = state.add_scale(Vector4::new(5.0, 5.0, 0.0, 1.0));
+        entity.components.insert(Component::Scale, scale);
+
+        let lifetime = state.add_lifetime(2.0);
+        entity.components.insert(Component::Lifetime, lifetime);
+        
         entity
     }
 
@@ -95,6 +139,11 @@ impl Entity {
             position.y = 0.0;
         }
 
+        if let Some(index) = self.components.get(&Component::Lifetime) {
+            let ref mut lifetime = state.lifetimes[*index];
+            *lifetime -= t;
+        }
+
         *acceleration = Vector4::zero();
     }
 }
@@ -106,6 +155,9 @@ pub struct EntityState {
     pub positions: Vec<Vector4<f32>>,
     pub velocities: Vec<Vector4<f32>>,
     pub directions: Vec<f32>,
+    pub models: Vec<(u32, u32)>,
+    pub scales: Vec<Vector4<f32>>,
+    pub lifetimes: Vec<f32>,
 }
 
 impl EntityState {
@@ -116,6 +168,9 @@ impl EntityState {
             positions: Vec::new(),
             velocities: Vec::new(),
             directions: Vec::new(),
+            models: Vec::new(),
+            scales: Vec::new(),
+            lifetimes: Vec::new(),
         }
     }
 
@@ -146,6 +201,24 @@ impl EntityState {
     fn add_velocity(&mut self, velocity: Vector4<f32>) -> usize {
         let index = self.velocities.len();
         self.velocities.push(velocity);
+        index
+    }
+
+    fn add_model(&mut self, model: (u32, u32)) -> usize {
+        let index = self.models.len();
+        self.models.push(model);
+        index
+    }
+
+    fn add_scale(&mut self, scale: Vector4<f32>) -> usize {
+        let index = self.scales.len();
+        self.scales.push(scale);
+        index
+    }
+
+    fn add_lifetime(&mut self, lifetime: f32) -> usize {
+        let index = self.lifetimes.len();
+        self.lifetimes.push(lifetime);
         index
     }
 }

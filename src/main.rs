@@ -38,6 +38,35 @@ fn main() {
         gl::UseProgram(program);
     }
 
+    let player_ship = vec![
+         0.0, -0.5, 0.0, 1.0,
+        -0.5,  0.5, 0.0, 1.0,
+         0.5,  0.5, 0.0, 1.0,
+    ];
+    render::create_object(0, &player_ship);
+
+    let projectile = vec![
+        -0.5, -0.5, 0.0, 1.0,
+        -0.5,  0.5, 0.0, 1.0,
+         0.5,  0.5, 0.0, 1.0,
+         0.5, -0.5, 0.0, 1.0,
+    ];
+    render::create_object(0, &projectile);
+
+    let asteroid_1 = vec![
+         0.1, -0.5, 0.0, 1.0,
+        -0.4, -0.3, 0.0, 1.0,
+        -0.2, -0.1, 0.0, 1.0,
+        -0.5,  0.0, 0.0, 1.0,
+        -0.4,  0.4, 0.0, 1.0,
+        -0.1,  0.5, 0.0, 1.0,
+         0.3,  0.2, 0.0, 1.0,
+         0.2,  0.1, 0.0, 1.0,
+         0.4, -0.2, 0.0, 1.0,
+         0.4, -0.3, 0.0, 1.0,
+    ];
+    render::create_object(0, &asteroid_1);
+
     let mut asteroids = asteroids::Asteroids::new();
 
     while asteroids.should_continue() {
@@ -58,6 +87,7 @@ fn translate_sdl2_event(event: Event) -> char {
         Event::KeyDown {scancode: Some(Scancode::W), ..} => 'w',
         Event::KeyDown {scancode: Some(Scancode::A), ..} => 'a',
         Event::KeyDown {scancode: Some(Scancode::D), ..} => 'd',
-        _ => ' ',
+        Event::KeyDown {scancode: Some(Scancode::Space), ..} => ' ',
+        _ => '§',
     }
 }

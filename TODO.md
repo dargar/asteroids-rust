@@ -5,3 +5,4 @@ Things to do:
 * Timing
 * Particles (Background, motion, destruction)
 * Collision detection and resolution
+* Editor mode for custom models
