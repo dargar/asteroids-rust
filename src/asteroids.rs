@@ -5,7 +5,6 @@ use cgmath::Matrix4;
 use cgmath::Matrix;
 use cgmath::SquareMatrix;
 use cgmath::Vector;
-use super::entity::Component;
 use super::entity::Entity;
 use super::entity::EntityState;
 
@@ -42,8 +41,9 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
 
     let mut projectiles = 0;
     {
-        let ref mut direction = asteroids.state.directions[*asteroids.entities[0].components.get(&Component::Direction).unwrap()];
-        let ref mut acceleration = asteroids.state.accelerations[*asteroids.entities[0].components.get(&Component::Acceleration).unwrap()];
+        let entity_id = asteroids.entities[0].id;
+        let direction = asteroids.state.directions.get_mut(&entity_id).unwrap();
+        let acceleration = asteroids.state.accelerations.get_mut(&entity_id).unwrap();
         for &event in input {
             match event {
                 'w' => {
@@ -63,8 +63,9 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
     }
 
     if projectiles > 0 {
-        let position = asteroids.state.positions[*asteroids.entities[0].components.get(&Component::Position).unwrap()].clone();
-        let direction = asteroids.state.directions[*asteroids.entities[0].components.get(&Component::Direction).unwrap()].clone();
+        let entity_id = asteroids.entities[0].id;
+        let position = asteroids.state.positions.get(&entity_id).unwrap().clone();
+        let direction = asteroids.state.directions.get(&entity_id).unwrap().clone();
         asteroids.entities.push(Entity::projectile(&mut asteroids.state, position, direction));
     }
 
@@ -72,12 +73,15 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
         entity.update(&mut asteroids.state, 1.0 / 60.0);
     }
 
-    let dead = asteroids.entities
+    let dead = asteroids.state.lifetimes
         .iter()
-        .filter(|e| if let Some(x) = e.components.get(&Component::Lifetime) { asteroids.state.lifetimes[*x] <= 0.0 } else { false })
-        .map(|e| e.id)
-        .collect::<Vec<u32>>();
+        .filter(|&(_, lifetime)| *lifetime <= 0.0)
+        .map(|(id, _)| *id)
+        .collect::<Vec<_>>();
     asteroids.entities.retain(|e| !dead.contains(&e.id));
+    for id in dead {
+        asteroids.state.remove(id);
+    }
 
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -87,19 +91,19 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
         let mut model = Matrix4::one();
 
         let mut translation = Matrix4::one();
-        let position = asteroids.state.positions[*entity.components.get(&Component::Position).unwrap()];
-        translation.replace_col(3, position);
+        let position = asteroids.state.positions.get(&entity.id).unwrap();
+        translation.replace_col(3, *position);
         model = model.mul_m(&translation);
 
         let mut rotation_z = Matrix4::one();
-        let theta = asteroids.state.directions[*entity.components.get(&Component::Direction).unwrap()];
+        let theta = *asteroids.state.directions.get(&entity.id).unwrap();
         rotation_z[0][0] = cgmath::cos(cgmath::deg(theta));
         rotation_z[0][1] = cgmath::sin(cgmath::deg(theta));
         rotation_z[1][0] = -cgmath::sin(cgmath::deg(theta));
         rotation_z[1][1] = cgmath::cos(cgmath::deg(theta));
         model = model.mul_m(&rotation_z);
 
-        let scale = asteroids.state.scales[*entity.components.get(&Component::Scale).unwrap()];
+        let scale = *asteroids.state.scales.get(&entity.id).unwrap();
         let scaling = Matrix4::from_diagonal(scale);
         model = model.mul_m(&scaling);
 
@@ -107,7 +111,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
         let mvp_array: [f32; 16] = *mvp.as_ref();
 
         unsafe {
-            let (vao, vertices) = asteroids.state.models[*entity.components.get(&Component::Model).unwrap()];
+            let (vao, vertices) = *asteroids.state.models.get(&entity.id).unwrap();
             gl::BindVertexArray(vao);
             gl::UniformMatrix4fv(1, 1, gl::FALSE, mvp_array.as_ptr());
             gl::DrawArrays(gl::LINE_LOOP, 0, vertices as i32);

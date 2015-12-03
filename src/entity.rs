@@ -6,124 +6,82 @@ use cgmath::Vector;
 use self::rand::Rng;
 use std::collections::HashMap;
 
-#[derive(Eq, PartialEq, Hash)]
-pub enum Component {
-    Acceleration,
-    Position,
-    Velocity,
-    Direction,
-    Model,
-    Scale,
-    Lifetime,
-}
-
 pub struct Entity {
     pub id: u32,
-    pub components: HashMap<Component, usize>,
 }
 
 impl Entity {
     fn new(id: u32) -> Entity {
         Entity {
             id: id,
-            components: HashMap::new(),
         }
     }
 
     pub fn player_ship(state: &mut EntityState) -> Entity {
-        let mut entity = Entity::new(state.next_id());
-
-        let acceleration = state.add_acceleration(Vector4::zero());
-        entity.components.insert(Component::Acceleration, acceleration);
-
-        let position = state.add_position(Vector4::new(400.0, 300.0, 0.0, 1.0));
-        entity.components.insert(Component::Position, position);
-
-        let velocity = state.add_velocity(Vector4::zero());
-        entity.components.insert(Component::Velocity, velocity);
-
-        let direction = state.add_direction(0.0);
-        entity.components.insert(Component::Direction, direction);
-
-        let model = state.add_model((1, 3));
-        entity.components.insert(Component::Model, model);
-
-        let scale = state.add_scale(Vector4::new(25.0, 50.0, 0.0, 1.0));
-        entity.components.insert(Component::Scale, scale);
-
+        let entity = Entity::new(state.next_id());
+        state.add_acceleration(entity.id, Vector4::zero());
+        state.add_position(entity.id, Vector4::new(400.0, 300.0, 0.0, 1.0));
+        state.add_velocity(entity.id, Vector4::zero());
+        state.add_direction(entity.id, 0.0);
+        state.add_model(entity.id, (1, 3));
+        state.add_scale(entity.id, Vector4::new(25.0, 50.0, 0.0, 1.0));
         entity
     }
 
     pub fn asteroid(state: &mut EntityState) -> Entity {
-        let mut entity = Entity::new(state.next_id());
+        let entity = Entity::new(state.next_id());
 
         let mut rng = rand::StdRng::new()
             .expect("Could not load random number generator.");
 
         let px = rng.next_f32() * 800.0;
         let py = rng.next_f32() * 600.0;
-        let position = state.add_position(Vector4::new(px, py, 0.0, 1.0));
-        entity.components.insert(Component::Position, position);
+        state.add_position(entity.id, Vector4::new(px, py, 0.0, 1.0));
 
         let dir = rng.next_f32() * 360.0;
-        let direction = state.add_direction(dir);
-        entity.components.insert(Component::Direction, direction);
+        state.add_direction(entity.id, dir);
 
         let mut acceleration: Vector4<f32> = Vector4::zero();
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
         acceleration = acceleration * 150.0;
         
-        let velocity = state.add_velocity(acceleration);
-        entity.components.insert(Component::Velocity, velocity);
-
-        let model = state.add_model((3, 10));
-        entity.components.insert(Component::Model, model);
-
-        let scale = state.add_scale(Vector4::new(50.0, 50.0, 0.0, 1.0));
-        entity.components.insert(Component::Scale, scale);
+        state.add_velocity(entity.id, acceleration);
+        state.add_model(entity.id, (3, 10));
+        state.add_scale(entity.id, Vector4::new(50.0, 50.0, 0.0, 1.0));
 
         entity
     }
 
     pub fn projectile(state: &mut EntityState, pos: Vector4<f32>, dir: f32) -> Entity {
-        let mut entity = Entity::new(state.next_id());
+        let entity = Entity::new(state.next_id());
 
-        let position = state.add_position(pos);
-        entity.components.insert(Component::Position, position);
+        state.add_position(entity.id, pos);
 
-        let direction = state.add_direction(dir);
-        entity.components.insert(Component::Direction, direction);
+        state.add_direction(entity.id, dir);
 
         let mut acceleration: Vector4<f32> = Vector4::zero();
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
         acceleration = acceleration * 200.0;
         
-        let velocity = state.add_velocity(acceleration);
-        entity.components.insert(Component::Velocity, velocity);
-
-        let model = state.add_model((2, 4));
-        entity.components.insert(Component::Model, model);
-
-        let scale = state.add_scale(Vector4::new(5.0, 5.0, 0.0, 1.0));
-        entity.components.insert(Component::Scale, scale);
-
-        let lifetime = state.add_lifetime(2.0);
-        entity.components.insert(Component::Lifetime, lifetime);
+        state.add_velocity(entity.id, acceleration);
+        state.add_model(entity.id, (2, 4));
+        state.add_scale(entity.id, Vector4::new(5.0, 5.0, 0.0, 1.0));
+        state.add_lifetime(entity.id, 2.0);
         
         entity
     }
 
     pub fn update(&self, state: &mut EntityState, t: f32) {
         let mut zero = Vector4::zero();
-        let acceleration = match self.components.get(&Component::Acceleration) {
-            Some(&i) => &mut state.accelerations[i],
+        let acceleration = match state.accelerations.get_mut(&self.id) {
+            Some(i) => i,
             None => &mut zero,
         };
         *acceleration = *acceleration * 1000.0;
-        let ref mut position = state.positions[*self.components.get(&Component::Position).unwrap()];
-        let ref mut velocity = state.velocities[*self.components.get(&Component::Velocity).unwrap()];
+        let position = state.positions.get_mut(&self.id).unwrap();
+        let velocity = state.velocities.get_mut(&self.id).unwrap();
         *position = *acceleration * t * t * 0.5f32 + *velocity * t + *position;
         *velocity = *acceleration * t + *velocity;
 
@@ -139,8 +97,7 @@ impl Entity {
             position.y = 0.0;
         }
 
-        if let Some(index) = self.components.get(&Component::Lifetime) {
-            let ref mut lifetime = state.lifetimes[*index];
+        if let Some(lifetime) = state.lifetimes.get_mut(&self.id) {
             *lifetime -= t;
         }
 
@@ -148,29 +105,28 @@ impl Entity {
     }
 }
 
-// FIXME: Indices might be wrong after removing one or more values
 pub struct EntityState {
     entity_count: u32,
-    pub accelerations: Vec<Vector4<f32>>,
-    pub positions: Vec<Vector4<f32>>,
-    pub velocities: Vec<Vector4<f32>>,
-    pub directions: Vec<f32>,
-    pub models: Vec<(u32, u32)>,
-    pub scales: Vec<Vector4<f32>>,
-    pub lifetimes: Vec<f32>,
+    pub accelerations: HashMap<u32, Vector4<f32>>,
+    pub positions: HashMap<u32, Vector4<f32>>,
+    pub velocities: HashMap<u32, Vector4<f32>>,
+    pub directions: HashMap<u32, f32>,
+    pub models: HashMap<u32, (u32, u32)>,
+    pub scales: HashMap<u32, Vector4<f32>>,
+    pub lifetimes: HashMap<u32, f32>,
 }
 
 impl EntityState {
     pub fn new() -> EntityState {
         EntityState {
             entity_count: 0,
-            accelerations: Vec::new(),
-            positions: Vec::new(),
-            velocities: Vec::new(),
-            directions: Vec::new(),
-            models: Vec::new(),
-            scales: Vec::new(),
-            lifetimes: Vec::new(),
+            accelerations: HashMap::new(),
+            positions: HashMap::new(),
+            velocities: HashMap::new(),
+            directions: HashMap::new(),
+            models: HashMap::new(),
+            scales: HashMap::new(),
+            lifetimes: HashMap::new(),
         }
     }
 
@@ -180,45 +136,41 @@ impl EntityState {
         id
     }
 
-    fn add_acceleration(&mut self, acceleration: Vector4<f32>) -> usize {
-        let index = self.accelerations.len();
-        self.accelerations.push(acceleration);
-        index
+    fn add_acceleration(&mut self, id: u32, acceleration: Vector4<f32>) {
+        self.accelerations.insert(id, acceleration);
     }
 
-    fn add_position(&mut self, position: Vector4<f32>) -> usize {
-        let index = self.positions.len();
-        self.positions.push(position);
-        index
+    fn add_position(&mut self, id: u32, position: Vector4<f32>) {
+        self.positions.insert(id, position);
     }
 
-    fn add_direction(&mut self, direction: f32) -> usize {
-        let index = self.directions.len();
-        self.directions.push(direction);
-        index
+    fn add_direction(&mut self, id: u32, direction: f32) {
+        self.directions.insert(id, direction);
     }
 
-    fn add_velocity(&mut self, velocity: Vector4<f32>) -> usize {
-        let index = self.velocities.len();
-        self.velocities.push(velocity);
-        index
+    fn add_velocity(&mut self, id: u32, velocity: Vector4<f32>) {
+        self.velocities.insert(id, velocity);
     }
 
-    fn add_model(&mut self, model: (u32, u32)) -> usize {
-        let index = self.models.len();
-        self.models.push(model);
-        index
+    fn add_model(&mut self, id: u32, model: (u32, u32)) {
+        self.models.insert(id, model);
     }
 
-    fn add_scale(&mut self, scale: Vector4<f32>) -> usize {
-        let index = self.scales.len();
-        self.scales.push(scale);
-        index
+    fn add_scale(&mut self, id: u32, scale: Vector4<f32>) {
+        self.scales.insert(id, scale);
     }
 
-    fn add_lifetime(&mut self, lifetime: f32) -> usize {
-        let index = self.lifetimes.len();
-        self.lifetimes.push(lifetime);
-        index
+    fn add_lifetime(&mut self, id: u32, lifetime: f32) {
+        self.lifetimes.insert(id, lifetime);
+    }
+
+    pub fn remove(&mut self, id: u32) {
+        self.accelerations.remove(&id);
+        self.positions.remove(&id);
+        self.velocities.remove(&id);
+        self.directions.remove(&id);
+        self.models.remove(&id);
+        self.scales.remove(&id);
+        self.lifetimes.remove(&id);
     }
 }
