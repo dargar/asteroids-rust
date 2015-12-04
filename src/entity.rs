@@ -6,6 +6,20 @@ use cgmath::Vector;
 use self::rand::Rng;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Copy)]
+pub enum Size {
+    Large,
+    Medium,
+    Small,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Kind {
+    PlayerShip,
+    ProjectileFriendly,
+    Asteroid(Size),
+}
+
 pub struct Entity {
     pub id: u32,
 }
@@ -19,6 +33,7 @@ impl Entity {
 
     pub fn player_ship(state: &mut EntityState) -> Entity {
         let entity = Entity::new(state.next_id());
+        state.add_kind(entity.id, Kind::PlayerShip);
         state.add_acceleration(entity.id, Vector4::zero());
         state.add_position(entity.id, Vector4::new(400.0, 300.0, 0.0, 1.0));
         state.add_velocity(entity.id, Vector4::zero());
@@ -28,8 +43,9 @@ impl Entity {
         entity
     }
 
-    pub fn asteroid(state: &mut EntityState) -> Entity {
+    fn asteroid(state: &mut EntityState, size: Size) -> Entity {
         let entity = Entity::new(state.next_id());
+        state.add_kind(entity.id, Kind::Asteroid(size));
 
         let mut rng = rand::StdRng::new()
             .expect("Could not load random number generator.");
@@ -48,16 +64,34 @@ impl Entity {
         
         state.add_velocity(entity.id, acceleration);
         state.add_model(entity.id, (3, 10));
-        state.add_scale(entity.id, Vector4::new(50.0, 50.0, 0.0, 1.0));
+
+        let s = match size {
+            Size::Large => Vector4::new(50.0, 50.0, 0.0, 1.0),
+            Size::Medium => Vector4::new(25.0, 25.0, 0.0, 1.0),
+            Size::Small => Vector4::new(12.5, 12.5, 0.0, 1.0),
+        };
+        state.add_scale(entity.id, s);
 
         entity
     }
 
+    pub fn large_asteroid(state: &mut EntityState) -> Entity {
+        Entity::asteroid(state, Size::Large)
+    }
+
+    pub fn medium_asteroid(state: &mut EntityState) -> Entity {
+        Entity::asteroid(state, Size::Medium)
+    }
+
+    pub fn small_asteroid(state: &mut EntityState) -> Entity {
+        Entity::asteroid(state, Size::Small)
+    }
+
     pub fn projectile(state: &mut EntityState, pos: Vector4<f32>, dir: f32) -> Entity {
         let entity = Entity::new(state.next_id());
+        state.add_kind(entity.id, Kind::ProjectileFriendly);
 
         state.add_position(entity.id, pos);
-
         state.add_direction(entity.id, dir);
 
         let mut acceleration: Vector4<f32> = Vector4::zero();
@@ -107,6 +141,7 @@ impl Entity {
 
 pub struct EntityState {
     entity_count: u32,
+    pub kinds: HashMap<u32, Kind>,
     pub accelerations: HashMap<u32, Vector4<f32>>,
     pub positions: HashMap<u32, Vector4<f32>>,
     pub velocities: HashMap<u32, Vector4<f32>>,
@@ -120,6 +155,7 @@ impl EntityState {
     pub fn new() -> EntityState {
         EntityState {
             entity_count: 0,
+            kinds: HashMap::new(),
             accelerations: HashMap::new(),
             positions: HashMap::new(),
             velocities: HashMap::new(),
@@ -134,6 +170,10 @@ impl EntityState {
         let id = self.entity_count;
         self.entity_count += 1;
         id
+    }
+
+    fn add_kind(&mut self, id: u32, kind: Kind) {
+        self.kinds.insert(id, kind);
     }
 
     fn add_acceleration(&mut self, id: u32, acceleration: Vector4<f32>) {
@@ -165,6 +205,7 @@ impl EntityState {
     }
 
     pub fn remove(&mut self, id: u32) {
+        self.kinds.remove(&id);
         self.accelerations.remove(&id);
         self.positions.remove(&id);
         self.velocities.remove(&id);

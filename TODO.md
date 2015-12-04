@@ -1,8 +1,10 @@
 Things to do:
-* Asteroid entity
-* Projectile entity
 * Alien entity
 * Timing
 * Particles (Background, motion, destruction)
-* Collision detection and resolution
+* Improve collision detection and resolution
 * Editor mode for custom models
+* User interface
+* Menu system
+* Input refinements
+* Cap max velocity

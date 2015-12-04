@@ -5,8 +5,11 @@ use cgmath::Matrix4;
 use cgmath::Matrix;
 use cgmath::SquareMatrix;
 use cgmath::Vector;
+use std::collections::HashSet;
 use super::entity::Entity;
 use super::entity::EntityState;
+use super::entity::Kind;
+use super::entity::Size;
 
 pub struct Asteroids {
     should_continue: bool,
@@ -34,9 +37,9 @@ impl Asteroids {
 pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
     if asteroids.entities.is_empty() {
         asteroids.entities.push(Entity::player_ship(&mut asteroids.state));
-        asteroids.entities.push(Entity::asteroid(&mut asteroids.state));
-        asteroids.entities.push(Entity::asteroid(&mut asteroids.state));
-        asteroids.entities.push(Entity::asteroid(&mut asteroids.state));
+        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
     }
 
     let mut projectiles = 0;
@@ -73,6 +76,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
         entity.update(&mut asteroids.state, 1.0 / 60.0);
     }
 
+    // Remove entities whose lifetime has run out
     let dead = asteroids.state.lifetimes
         .iter()
         .filter(|&(_, lifetime)| *lifetime <= 0.0)
@@ -83,10 +87,70 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
         asteroids.state.remove(id);
     }
 
+    // Collect all collisions
+    let mut collisions: Vec<((u32, Kind), (u32, Kind))> = Vec::new();
+    for a in &asteroids.entities {
+        let a_position = *asteroids.state.positions.get(&a.id).unwrap();
+        let a_scale = *asteroids.state.scales.get(&a.id).unwrap();
+        let a_min = a_position - a_scale / 2.0;
+        let a_max = a_position + a_scale / 2.0;
+        for b in &asteroids.entities {
+            let b_position = *asteroids.state.positions.get(&b.id).unwrap();
+            let b_scale = *asteroids.state.scales.get(&b.id).unwrap();
+            let b_min = b_position - b_scale / 2.0;
+            let b_max = b_position + b_scale / 2.0;
+            if b_min.x > a_min.x && b_min.y > a_min.y && b_min.x < a_max.x && b_min.y < a_max.y {
+                let kind_a = asteroids.state.kinds.get(&a.id).unwrap();
+                let kind_b = asteroids.state.kinds.get(&b.id).unwrap();
+                collisions.push(((a.id, (*kind_a).clone()), (b.id, (*kind_b).clone())));
+            } else if b_max.x > a_min.x && b_max.y > a_min.y && b_max.x < a_max.x && b_max.y < a_max.y {
+                let kind_a = asteroids.state.kinds.get(&a.id).unwrap();
+                let kind_b = asteroids.state.kinds.get(&b.id).unwrap();
+                collisions.push(((a.id, (*kind_a).clone()), (b.id, (*kind_b).clone())));
+            }
+        }
+    }
+
+    // Collect destroyed entities
+    let mut destroyed = HashSet::new();
+    for ((a, kind_a), (b, kind_b)) in collisions {
+        match (kind_a, kind_b) {
+            (Kind::PlayerShip, Kind::Asteroid(_)) => {
+                destroyed.insert(a);
+            },
+            (Kind::Asteroid(_), Kind::PlayerShip) => {
+                destroyed.insert(b);
+            },
+            (Kind::Asteroid(_), Kind::ProjectileFriendly) | (Kind::ProjectileFriendly, Kind::Asteroid(_)) => {
+                destroyed.insert(a);
+                destroyed.insert(b);
+            },
+            _ => (),
+        }
+    }
+
+    // Remove destroyed entities
+    asteroids.entities.retain(|e| !destroyed.contains(&e.id));
+    for d in destroyed {
+        match *asteroids.state.kinds.get(&d).unwrap() {
+            Kind::Asteroid(Size::Large) => {
+                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
+                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
+            },
+            Kind::Asteroid(Size::Medium) => {
+                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
+                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
+            },
+            _ => (),
+        }
+        asteroids.state.remove(d);
+    }
+
     unsafe {
         gl::Clear(gl::COLOR_BUFFER_BIT);
     }
 
+    // Draw entities
     for entity in &asteroids.entities {
         let mut model = Matrix4::one();
 
