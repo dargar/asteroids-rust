@@ -34,7 +34,7 @@ impl Asteroids {
     }
 }
 
-pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
+pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
     if asteroids.entities.is_empty() {
         asteroids.entities.push(Entity::player_ship(&mut asteroids.state));
         asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
@@ -73,7 +73,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char]) {
     }
 
     for entity in &asteroids.entities {
-        entity.update(&mut asteroids.state, 1.0 / 60.0);
+        entity.update(&mut asteroids.state, dt);
     }
 
     // Remove entities whose lifetime has run out

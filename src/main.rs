@@ -2,6 +2,7 @@ extern crate cgmath;
 extern crate gl;
 extern crate libc;
 extern crate sdl2;
+extern crate time;
 
 mod asteroids;
 mod entity;
@@ -69,14 +70,17 @@ fn main() {
 
     let mut asteroids = asteroids::Asteroids::new();
 
+    let mut current_time = time::precise_time_ns();
     while asteroids.should_continue() {
+        let previous_time = current_time;
+        current_time = time::precise_time_ns();
+        let delta = (current_time - previous_time) as f32 / 1_000_000_000.0;
         let input = events
             .poll_iter()
             .map(|e| translate_sdl2_event(e))
             .collect::<Vec<char>>();
-        asteroids::update_and_render(&mut asteroids, &input);
+        asteroids::update_and_render(&mut asteroids, &input, delta);
         window.gl_swap_window();
-        std::thread::sleep_ms(16);
     }
 }
 
