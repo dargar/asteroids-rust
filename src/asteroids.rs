@@ -52,14 +52,14 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
                 'w' => {
                     acceleration.x += cgmath::sin(cgmath::deg(*direction));
                     acceleration.y += -cgmath::cos(cgmath::deg(*direction));
-                },
+                }
                 'a' => *direction += -4.0,
                 'd' => *direction += 4.0,
                 ' ' => projectiles += 1,
                 'q' => {
                     asteroids.should_continue = false;
-                    return
-                },
+                    return;
+                }
                 _ => (),
             }
         }
@@ -77,11 +77,12 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
     }
 
     // Remove entities whose lifetime has run out
-    let dead = asteroids.state.lifetimes
-        .iter()
-        .filter(|&(_, lifetime)| *lifetime <= 0.0)
-        .map(|(id, _)| *id)
-        .collect::<Vec<_>>();
+    let dead = asteroids.state
+                        .lifetimes
+                        .iter()
+                        .filter(|&(_, lifetime)| *lifetime <= 0.0)
+                        .map(|(id, _)| *id)
+                        .collect::<Vec<_>>();
     asteroids.entities.retain(|e| !dead.contains(&e.id));
     for id in dead {
         asteroids.state.remove(id);
@@ -117,14 +118,15 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
         match (kind_a, kind_b) {
             (Kind::PlayerShip, Kind::Asteroid(_)) => {
                 destroyed.insert(a);
-            },
+            }
             (Kind::Asteroid(_), Kind::PlayerShip) => {
                 destroyed.insert(b);
-            },
-            (Kind::Asteroid(_), Kind::ProjectileFriendly) | (Kind::ProjectileFriendly, Kind::Asteroid(_)) => {
+            }
+            (Kind::Asteroid(_), Kind::ProjectileFriendly) |
+            (Kind::ProjectileFriendly, Kind::Asteroid(_)) => {
                 destroyed.insert(a);
                 destroyed.insert(b);
-            },
+            }
             _ => (),
         }
     }
@@ -136,11 +138,11 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
             Kind::Asteroid(Size::Large) => {
                 asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
                 asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
-            },
+            }
             Kind::Asteroid(Size::Medium) => {
                 asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
                 asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
-            },
+            }
             _ => (),
         }
         asteroids.state.remove(d);

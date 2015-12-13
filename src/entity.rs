@@ -26,9 +26,7 @@ pub struct Entity {
 
 impl Entity {
     fn new(id: u32) -> Entity {
-        Entity {
-            id: id,
-        }
+        Entity { id: id }
     }
 
     pub fn player_ship(state: &mut EntityState) -> Entity {
@@ -47,8 +45,7 @@ impl Entity {
         let entity = Entity::new(state.next_id());
         state.add_kind(entity.id, Kind::Asteroid(size));
 
-        let mut rng = rand::StdRng::new()
-            .expect("Could not load random number generator.");
+        let mut rng = rand::StdRng::new().expect("Could not load random number generator.");
 
         let px = rng.next_f32() * 800.0;
         let py = rng.next_f32() * 600.0;
@@ -61,7 +58,7 @@ impl Entity {
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
         acceleration = acceleration * 150.0;
-        
+
         state.add_velocity(entity.id, acceleration);
         state.add_model(entity.id, (3, 10));
 
@@ -98,12 +95,12 @@ impl Entity {
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
         acceleration = acceleration * 200.0;
-        
+
         state.add_velocity(entity.id, acceleration);
         state.add_model(entity.id, (2, 4));
         state.add_scale(entity.id, Vector4::new(5.0, 5.0, 0.0, 1.0));
         state.add_lifetime(entity.id, 2.0);
-        
+
         entity
     }
 

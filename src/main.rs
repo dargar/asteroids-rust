@@ -12,8 +12,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 
 fn main() {
-    let context = sdl2::init()
-        .expect("Could not initialize SDL2.");
+    let context = sdl2::init().expect("Could not initialize SDL2.");
     let mut events = context.event_pump()
         .expect("Could not create SDL2 event pump.");
     let video = context.video()
@@ -40,31 +39,31 @@ fn main() {
     }
 
     let player_ship = vec![
-         0.0, -0.5, 0.0, 1.0,
+        0.0, -0.5, 0.0, 1.0,
         -0.5,  0.5, 0.0, 1.0,
-         0.5,  0.5, 0.0, 1.0,
+        0.5,  0.5, 0.0, 1.0,
     ];
     render::create_object(0, &player_ship);
 
     let projectile = vec![
         -0.5, -0.5, 0.0, 1.0,
         -0.5,  0.5, 0.0, 1.0,
-         0.5,  0.5, 0.0, 1.0,
-         0.5, -0.5, 0.0, 1.0,
+        0.5,  0.5, 0.0, 1.0,
+        0.5, -0.5, 0.0, 1.0,
     ];
     render::create_object(0, &projectile);
 
     let asteroid_1 = vec![
-         0.1, -0.5, 0.0, 1.0,
+        0.1, -0.5, 0.0, 1.0,
         -0.4, -0.3, 0.0, 1.0,
         -0.2, -0.1, 0.0, 1.0,
         -0.5,  0.0, 0.0, 1.0,
         -0.4,  0.4, 0.0, 1.0,
         -0.1,  0.5, 0.0, 1.0,
-         0.3,  0.2, 0.0, 1.0,
-         0.2,  0.1, 0.0, 1.0,
-         0.4, -0.2, 0.0, 1.0,
-         0.4, -0.3, 0.0, 1.0,
+        0.3,  0.2, 0.0, 1.0,
+        0.2,  0.1, 0.0, 1.0,
+        0.4, -0.2, 0.0, 1.0,
+        0.4, -0.3, 0.0, 1.0,
     ];
     render::create_object(0, &asteroid_1);
 
@@ -75,8 +74,7 @@ fn main() {
         let previous_time = current_time;
         current_time = time::precise_time_ns();
         let delta = (current_time - previous_time) as f32 / 1_000_000_000.0;
-        let input = events
-            .poll_iter()
+        let input = events.poll_iter()
             .map(|e| translate_sdl2_event(e))
             .collect::<Vec<char>>();
         asteroids::update_and_render(&mut asteroids, &input, delta);

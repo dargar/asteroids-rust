@@ -9,7 +9,7 @@ use std::str;
 
 fn create_shader(shader_source: &str, shader_type: GLenum) -> u32 {
     let c_str = CString::new(shader_source.as_bytes())
-        .expect("Could not create c string from shader source.");
+                    .expect("Could not create c string from shader source.");
 
     unsafe {
         let shader = gl::CreateShader(shader_type);
@@ -23,8 +23,12 @@ fn create_shader(shader_source: &str, shader_type: GLenum) -> u32 {
             gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut length);
             let mut message = Vec::with_capacity(length as usize);
             message.set_len((length as usize) - 1);
-            gl::GetShaderInfoLog(shader, length, ptr::null_mut(), message.as_mut_ptr() as *mut GLchar);
-            panic!("{}", str::from_utf8(&message).ok().expect("ShaderInfoLog not valid utf8."));
+            gl::GetShaderInfoLog(shader,
+                                 length,
+                                 ptr::null_mut(),
+                                 message.as_mut_ptr() as *mut GLchar);
+            panic!("{}",
+                   str::from_utf8(&message).ok().expect("ShaderInfoLog not valid utf8."));
         }
         shader
     }
@@ -46,8 +50,12 @@ pub fn create_program(vs_src: &str, fs_src: &str) -> u32 {
             gl::GetProgramiv(program, gl::INFO_LOG_LENGTH, &mut length);
             let mut log = Vec::with_capacity(length as usize);
             log.set_len(length as usize - 1);
-            gl::GetProgramInfoLog(program, length, ptr::null_mut(), log.as_mut_ptr() as *mut gl::types::GLchar);
-            panic!("{}", str::from_utf8(&log).ok().expect("ProgramInfoLog not valid utf8."));
+            gl::GetProgramInfoLog(program,
+                                  length,
+                                  ptr::null_mut(),
+                                  log.as_mut_ptr() as *mut gl::types::GLchar);
+            panic!("{}",
+                   str::from_utf8(&log).ok().expect("ProgramInfoLog not valid utf8."));
         }
 
         gl::DetachShader(program, vs);
