@@ -5,6 +5,7 @@ extern crate sdl2;
 extern crate time;
 
 mod asteroids;
+mod collisions;
 mod entity;
 mod render;
 

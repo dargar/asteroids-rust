@@ -1,11 +1,13 @@
 extern crate cgmath;
 extern crate gl;
+extern crate time;
 
 use cgmath::Matrix4;
 use cgmath::Matrix;
 use cgmath::SquareMatrix;
 use cgmath::Vector;
 use std::collections::HashSet;
+use super::collisions;
 use super::entity::Entity;
 use super::entity::EntityState;
 use super::entity::Kind;
@@ -89,28 +91,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
     }
 
     // Collect all collisions
-    let mut collisions: Vec<((u32, Kind), (u32, Kind))> = Vec::new();
-    for a in &asteroids.entities {
-        let a_position = *asteroids.state.positions.get(&a.id).unwrap();
-        let a_scale = *asteroids.state.scales.get(&a.id).unwrap();
-        let a_min = a_position - a_scale / 2.0;
-        let a_max = a_position + a_scale / 2.0;
-        for b in &asteroids.entities {
-            let b_position = *asteroids.state.positions.get(&b.id).unwrap();
-            let b_scale = *asteroids.state.scales.get(&b.id).unwrap();
-            let b_min = b_position - b_scale / 2.0;
-            let b_max = b_position + b_scale / 2.0;
-            if b_min.x > a_min.x && b_min.y > a_min.y && b_min.x < a_max.x && b_min.y < a_max.y {
-                let kind_a = asteroids.state.kinds.get(&a.id).unwrap();
-                let kind_b = asteroids.state.kinds.get(&b.id).unwrap();
-                collisions.push(((a.id, (*kind_a).clone()), (b.id, (*kind_b).clone())));
-            } else if b_max.x > a_min.x && b_max.y > a_min.y && b_max.x < a_max.x && b_max.y < a_max.y {
-                let kind_a = asteroids.state.kinds.get(&a.id).unwrap();
-                let kind_b = asteroids.state.kinds.get(&b.id).unwrap();
-                collisions.push(((a.id, (*kind_a).clone()), (b.id, (*kind_b).clone())));
-            }
-        }
-    }
+    let collisions = collisions::find_collisions(&asteroids.state, &asteroids.entities);
 
     // Collect destroyed entities
     let mut destroyed = HashSet::new();
