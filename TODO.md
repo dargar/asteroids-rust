@@ -1,4 +1,4 @@
-Things to do:
+# Things to do:
 * Alien entity
 * Timing
 * Particles (Background, motion, destruction)
@@ -8,3 +8,4 @@ Things to do:
 * Menu system
 * Input refinements
 * Cap max velocity
+* Decouple entity coordinates from screen size

@@ -3,6 +3,9 @@ name = "asteroids"
 version = "0.1.0"
 authors = ["Dargar <dargar@example.com>"]
 
+[profile.release]
+debug = true
+
 [dependencies]
 cgmath = "0.5.0"
 gl = "0.3.0"
