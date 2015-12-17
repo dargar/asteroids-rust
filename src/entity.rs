@@ -38,6 +38,7 @@ impl Entity {
         state.add_direction(entity.id, 0.0);
         state.add_model(entity.id, (1, 3));
         state.add_scale(entity.id, Vector4::new(25.0, 50.0, 0.0, 1.0));
+        state.add_weapon_cooldown(entity.id, 0.0);
         entity
     }
 
@@ -132,6 +133,10 @@ impl Entity {
             *lifetime -= t;
         }
 
+        if let Some(weapon_cooldown) = state.weapon_cooldowns.get_mut(&self.id) {
+            *weapon_cooldown -= t;
+        }
+
         *acceleration = Vector4::zero();
     }
 }
@@ -146,6 +151,7 @@ pub struct EntityState {
     pub models: HashMap<u32, (u32, u32)>,
     pub scales: HashMap<u32, Vector4<f32>>,
     pub lifetimes: HashMap<u32, f32>,
+    pub weapon_cooldowns: HashMap<u32, f32>,
 }
 
 impl EntityState {
@@ -160,6 +166,7 @@ impl EntityState {
             models: HashMap::new(),
             scales: HashMap::new(),
             lifetimes: HashMap::new(),
+            weapon_cooldowns: HashMap::new(),
         }
     }
 
@@ -201,6 +208,10 @@ impl EntityState {
         self.lifetimes.insert(id, lifetime);
     }
 
+    fn add_weapon_cooldown(&mut self, id: u32, weapon_cooldown: f32) {
+        self.weapon_cooldowns.insert(id, weapon_cooldown);
+    }
+
     pub fn remove(&mut self, id: u32) {
         self.kinds.remove(&id);
         self.accelerations.remove(&id);
@@ -210,5 +221,6 @@ impl EntityState {
         self.models.remove(&id);
         self.scales.remove(&id);
         self.lifetimes.remove(&id);
+        self.weapon_cooldowns.remove(&id);
     }
 }

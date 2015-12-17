@@ -11,6 +11,7 @@ mod render;
 
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
+use std::collections::HashMap;
 
 fn main() {
     let context = sdl2::init().expect("Could not initialize SDL2.");
@@ -75,9 +76,12 @@ fn main() {
         let previous_time = current_time;
         current_time = time::precise_time_ns();
         let delta = (current_time - previous_time) as f32 / 1_000_000_000.0;
-        let input = events.poll_iter()
-            .map(|e| translate_sdl2_event(e))
-            .collect::<Vec<char>>();
+        let mut input = HashMap::new();
+        for event in events.poll_iter() {
+            let c = translate_sdl2_event(event);
+            let transitions = input.entry(c).or_insert(1);
+            *transitions += 1;
+        }
         asteroids::update_and_render(&mut asteroids, &input, delta);
         window.gl_swap_window();
     }
@@ -86,11 +90,16 @@ fn main() {
 fn translate_sdl2_event(event: Event) -> char {
     match event {
         Event::Quit {..} => 'q',
-        Event::KeyDown {scancode: Some(Scancode::Q), ..} => 'q',
-        Event::KeyDown {scancode: Some(Scancode::W), ..} => 'w',
-        Event::KeyDown {scancode: Some(Scancode::A), ..} => 'a',
-        Event::KeyDown {scancode: Some(Scancode::D), ..} => 'd',
-        Event::KeyDown {scancode: Some(Scancode::Space), ..} => ' ',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::Q), ..} => 'q',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::W), ..} => 'w',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::A), ..} => 'a',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::D), ..} => 'd',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::Space), ..} => ' ',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::Q), ..} => 'q',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::W), ..} => 'w',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::A), ..} => 'a',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::D), ..} => 'd',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::Space), ..} => ' ',
         _ => '§',
     }
 }

@@ -6,6 +6,7 @@ use cgmath::Matrix4;
 use cgmath::Matrix;
 use cgmath::SquareMatrix;
 use cgmath::Vector;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use super::collisions;
 use super::entity::Entity;
@@ -13,11 +14,17 @@ use super::entity::EntityState;
 use super::entity::Kind;
 use super::entity::Size;
 
+enum InputStatus {
+    Up,
+    Down,
+}
+
 pub struct Asteroids {
     should_continue: bool,
     projection: Matrix4<f32>,
     entities: Vec<Entity>,
     state: EntityState,
+    input: HashMap<char, InputStatus>,
 }
 
 impl Asteroids {
@@ -28,6 +35,7 @@ impl Asteroids {
             projection: cgmath::ortho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0),
             entities: Vec::new(),
             state: entity_state,
+            input: HashMap::new(),
         }
     }
 
@@ -36,7 +44,7 @@ impl Asteroids {
     }
 }
 
-pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
+pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, dt: f32) {
     if asteroids.entities.is_empty() {
         asteroids.entities.push(Entity::player_ship(&mut asteroids.state));
         asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
@@ -44,27 +52,43 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
         asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
     }
 
+    for (&event, &transition_count) in input {
+        if transition_count % 2 == 0 {
+            let status = asteroids.input.entry(event).or_insert(InputStatus::Up);
+            match *status {
+                InputStatus::Up => *status = InputStatus::Down,
+                InputStatus::Down => *status = InputStatus::Up,
+            }
+        }
+    }
+
     let mut projectiles = 0;
     {
         let entity_id = asteroids.entities[0].id;
         let direction = asteroids.state.directions.get_mut(&entity_id).unwrap();
         let acceleration = asteroids.state.accelerations.get_mut(&entity_id).unwrap();
-        for &event in input {
-            match event {
-                'w' => {
+        let weapon_cooldown = asteroids.state.weapon_cooldowns.get(&entity_id).unwrap();
+        for ins in &asteroids.input {
+            match ins {
+                (&'w', &InputStatus::Down) => {
                     acceleration.x += cgmath::sin(cgmath::deg(*direction));
                     acceleration.y += -cgmath::cos(cgmath::deg(*direction));
                 }
-                'a' => *direction += -4.0,
-                'd' => *direction += 4.0,
-                ' ' => projectiles += 1,
-                'q' => {
+                (&'a', &InputStatus::Down) => *direction += -4.0,
+                (&'d', &InputStatus::Down) => *direction += 4.0,
+                (&' ', &InputStatus::Down) => {
+                    if *weapon_cooldown <= 0.0 {
+                        projectiles += 1;
+                    }
+                }
+                (&'q', &InputStatus::Down) => {
                     asteroids.should_continue = false;
                     return;
                 }
                 _ => (),
             }
         }
+
     }
 
     if projectiles > 0 {
@@ -72,6 +96,8 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
         let position = asteroids.state.positions.get(&entity_id).unwrap().clone();
         let direction = asteroids.state.directions.get(&entity_id).unwrap().clone();
         asteroids.entities.push(Entity::projectile(&mut asteroids.state, position, direction));
+        let weapon_cooldown = asteroids.state.weapon_cooldowns.get_mut(&entity_id).unwrap();
+        *weapon_cooldown = 0.3;
     }
 
     for entity in &asteroids.entities {
@@ -124,6 +150,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &[char], dt: f32) {
                 asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
                 asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
             }
+            Kind::PlayerShip => asteroids.should_continue = false,
             _ => (),
         }
         asteroids.state.remove(d);
