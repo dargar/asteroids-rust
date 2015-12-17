@@ -9,3 +9,6 @@
 * Input refinements
 * Cap max velocity
 * Decouple entity coordinates from screen size
+* Resizable window
+* Player lives
+* Player score

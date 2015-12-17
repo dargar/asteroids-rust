@@ -21,6 +21,7 @@ enum InputStatus {
 
 pub struct Asteroids {
     should_continue: bool,
+    stage: u32,
     projection: Matrix4<f32>,
     entities: Vec<Entity>,
     state: EntityState,
@@ -32,6 +33,7 @@ impl Asteroids {
         let entity_state = EntityState::new();
         Asteroids {
             should_continue: true,
+            stage: 1,
             projection: cgmath::ortho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0),
             entities: Vec::new(),
             state: entity_state,
@@ -47,9 +49,13 @@ impl Asteroids {
 pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, dt: f32) {
     if asteroids.entities.is_empty() {
         asteroids.entities.push(Entity::player_ship(&mut asteroids.state));
-        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
-        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
-        asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+    } else if asteroids.entities.len() == 1 {
+        for _ in 1..asteroids.stage {
+            asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+            asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+            asteroids.entities.push(Entity::large_asteroid(&mut asteroids.state));
+        }
+        asteroids.stage += 1;
     }
 
     for (&event, &transition_count) in input {
@@ -74,8 +80,8 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
                     acceleration.x += cgmath::sin(cgmath::deg(*direction));
                     acceleration.y += -cgmath::cos(cgmath::deg(*direction));
                 }
-                (&'a', &InputStatus::Down) => *direction += -4.0,
-                (&'d', &InputStatus::Down) => *direction += 4.0,
+                (&'a', &InputStatus::Down) => *direction += -5.0,
+                (&'d', &InputStatus::Down) => *direction += 5.0,
                 (&' ', &InputStatus::Down) => {
                     if *weapon_cooldown <= 0.0 {
                         projectiles += 1;
@@ -97,7 +103,7 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
         let direction = asteroids.state.directions.get(&entity_id).unwrap().clone();
         asteroids.entities.push(Entity::projectile(&mut asteroids.state, position, direction));
         let weapon_cooldown = asteroids.state.weapon_cooldowns.get_mut(&entity_id).unwrap();
-        *weapon_cooldown = 0.3;
+        *weapon_cooldown = 0.2;
     }
 
     for entity in &asteroids.entities {
@@ -143,12 +149,14 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
     for d in destroyed {
         match *asteroids.state.kinds.get(&d).unwrap() {
             Kind::Asteroid(Size::Large) => {
-                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
-                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state));
+                let position = *asteroids.state.positions.get(&d).unwrap();
+                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state, position));
+                asteroids.entities.push(Entity::medium_asteroid(&mut asteroids.state, position));
             }
             Kind::Asteroid(Size::Medium) => {
-                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
-                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state));
+                let position = *asteroids.state.positions.get(&d).unwrap();
+                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state, position));
+                asteroids.entities.push(Entity::small_asteroid(&mut asteroids.state, position));
             }
             Kind::PlayerShip => asteroids.should_continue = false,
             _ => (),

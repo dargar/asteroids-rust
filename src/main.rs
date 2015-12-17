@@ -100,6 +100,12 @@ fn translate_sdl2_event(event: Event) -> char {
         Event::KeyUp {repeat: false, scancode: Some(Scancode::A), ..} => 'a',
         Event::KeyUp {repeat: false, scancode: Some(Scancode::D), ..} => 'd',
         Event::KeyUp {repeat: false, scancode: Some(Scancode::Space), ..} => ' ',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::Up), ..} => 'w',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::Left), ..} => 'a',
+        Event::KeyDown {repeat: false, scancode: Some(Scancode::Right), ..} => 'd',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::Up), ..} => 'w',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::Left), ..} => 'a',
+        Event::KeyUp {repeat: false, scancode: Some(Scancode::Right), ..} => 'd',
         _ => '§',
     }
 }

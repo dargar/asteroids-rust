@@ -37,20 +37,26 @@ impl Entity {
         state.add_velocity(entity.id, Vector4::zero());
         state.add_direction(entity.id, 0.0);
         state.add_model(entity.id, (1, 3));
-        state.add_scale(entity.id, Vector4::new(25.0, 50.0, 0.0, 1.0));
+        state.add_scale(entity.id, Vector4::new(20.0, 30.0, 0.0, 1.0));
         state.add_weapon_cooldown(entity.id, 0.0);
         entity
     }
 
-    fn asteroid(state: &mut EntityState, size: Size) -> Entity {
+    fn asteroid(state: &mut EntityState, size: Size, position: Option<Vector4<f32>>) -> Entity {
         let entity = Entity::new(state.next_id());
         state.add_kind(entity.id, Kind::Asteroid(size));
 
         let mut rng = rand::StdRng::new().expect("Could not load random number generator.");
 
-        let px = rng.next_f32() * 800.0;
-        let py = rng.next_f32() * 600.0;
-        state.add_position(entity.id, Vector4::new(px, py, 0.0, 1.0));
+        let p = match position {
+            Some(position) => position,
+            None => {
+                let px = rng.next_f32() * 800.0;
+                let py = rng.next_f32() * 600.0;
+                Vector4::new(px, py, 0.0, 1.0)
+            }
+        };
+        state.add_position(entity.id, p);
 
         let dir = rng.next_f32() * 360.0;
         state.add_direction(entity.id, dir);
@@ -58,7 +64,7 @@ impl Entity {
         let mut acceleration: Vector4<f32> = Vector4::zero();
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
-        acceleration = acceleration * 150.0;
+        acceleration = acceleration * (100.0 + rng.next_f32() * 100.0);
 
         state.add_velocity(entity.id, acceleration);
         state.add_model(entity.id, (3, 10));
@@ -74,15 +80,15 @@ impl Entity {
     }
 
     pub fn large_asteroid(state: &mut EntityState) -> Entity {
-        Entity::asteroid(state, Size::Large)
+        Entity::asteroid(state, Size::Large, None)
     }
 
-    pub fn medium_asteroid(state: &mut EntityState) -> Entity {
-        Entity::asteroid(state, Size::Medium)
+    pub fn medium_asteroid(state: &mut EntityState, position: Vector4<f32>) -> Entity {
+        Entity::asteroid(state, Size::Medium, Some(position))
     }
 
-    pub fn small_asteroid(state: &mut EntityState) -> Entity {
-        Entity::asteroid(state, Size::Small)
+    pub fn small_asteroid(state: &mut EntityState, position: Vector4<f32>) -> Entity {
+        Entity::asteroid(state, Size::Small, Some(position))
     }
 
     pub fn projectile(state: &mut EntityState, pos: Vector4<f32>, dir: f32) -> Entity {
@@ -95,12 +101,12 @@ impl Entity {
         let mut acceleration: Vector4<f32> = Vector4::zero();
         acceleration.x += cgmath::sin(cgmath::deg(dir));
         acceleration.y += -cgmath::cos(cgmath::deg(dir));
-        acceleration = acceleration * 200.0;
+        acceleration = acceleration * 500.0;
 
         state.add_velocity(entity.id, acceleration);
         state.add_model(entity.id, (2, 4));
         state.add_scale(entity.id, Vector4::new(5.0, 5.0, 0.0, 1.0));
-        state.add_lifetime(entity.id, 2.0);
+        state.add_lifetime(entity.id, 0.75);
 
         entity
     }
