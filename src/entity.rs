@@ -51,9 +51,13 @@ impl Entity {
         let p = match position {
             Some(position) => position,
             None => {
-                let px = rng.next_f32() * 800.0;
-                let py = rng.next_f32() * 600.0;
-                Vector4::new(px, py, 0.0, 1.0)
+                if rng.next_u32() % 2 == 0 {
+                    let px = rng.next_f32() * 800.0;
+                    Vector4::new(px, 0.0, 0.0, 1.0)
+                } else {
+                    let py = rng.next_f32() * 600.0;
+                    Vector4::new(0.0, py, 0.0, 1.0)
+                }
             }
         };
         state.add_position(entity.id, p);

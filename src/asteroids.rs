@@ -22,6 +22,11 @@ enum InputStatus {
 pub struct Asteroids {
     should_continue: bool,
     stage: u32,
+    // TODO: Should some of these be in entity state instead?
+    score: u32,
+    lives: u32,
+    live_up: u32,
+    invulnerability_time: f32,
     projection: Matrix4<f32>,
     entities: Vec<Entity>,
     state: EntityState,
@@ -34,6 +39,10 @@ impl Asteroids {
         Asteroids {
             should_continue: true,
             stage: 1,
+            score: 0,
+            lives: 3,
+            live_up: 0,
+            invulnerability_time: 0.0,
             projection: cgmath::ortho(0.0, 800.0, 600.0, 0.0, -1.0, 1.0),
             entities: Vec::new(),
             state: entity_state,
@@ -106,6 +115,8 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
         *weapon_cooldown = 0.2;
     }
 
+    asteroids.invulnerability_time -= dt;
+
     for entity in &asteroids.entities {
         entity.update(&mut asteroids.state, dt);
     }
@@ -130,15 +141,43 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
     for ((a, kind_a), (b, kind_b)) in collisions {
         match (kind_a, kind_b) {
             (Kind::PlayerShip, Kind::Asteroid(_)) => {
-                destroyed.insert(a);
+                if asteroids.invulnerability_time >= 0.0 {
+                    ()
+                } else if asteroids.lives <= 1 {
+                    destroyed.insert(a);
+                } else {
+                    asteroids.lives -= 1;
+                    asteroids.invulnerability_time = 1.0;
+                }
             }
             (Kind::Asteroid(_), Kind::PlayerShip) => {
-                destroyed.insert(b);
+                if asteroids.invulnerability_time >= 0.0 {
+                    ()
+                } else if asteroids.lives <= 1 {
+                    destroyed.insert(b);
+                } else {
+                    asteroids.lives -= 1;
+                    asteroids.invulnerability_time = 1.0;
+                }
             }
-            (Kind::Asteroid(_), Kind::ProjectileFriendly) |
-            (Kind::ProjectileFriendly, Kind::Asteroid(_)) => {
+            (Kind::Asteroid(s), Kind::ProjectileFriendly) |
+            (Kind::ProjectileFriendly, Kind::Asteroid(s)) => {
                 destroyed.insert(a);
                 destroyed.insert(b);
+                let points = match s {
+                    Size::Large => 10,
+                    Size::Medium => 25,
+                    Size::Small => 50,
+                };
+                // TODO: Score gets counted twice! Once for (a, b) and one for (b, a)
+                asteroids.score += points;
+                println!("Score: {}", asteroids.score);
+                asteroids.live_up += points;
+                // TODO: Verify that this is correct
+                if asteroids.live_up >= 2000 {
+                    asteroids.lives += 1;
+                    asteroids.live_up = asteroids.live_up % 2000;
+                }
             }
             _ => (),
         }
@@ -194,6 +233,32 @@ pub fn update_and_render(asteroids: &mut Asteroids, input: &HashMap<char, u32>, 
 
         unsafe {
             let (vao, vertices) = *asteroids.state.models.get(&entity.id).unwrap();
+            gl::BindVertexArray(vao);
+            gl::UniformMatrix4fv(1, 1, gl::FALSE, mvp_array.as_ptr());
+            gl::DrawArrays(gl::LINE_LOOP, 0, vertices as i32);
+        }
+    }
+
+    for life in 0..asteroids.lives {
+        let mut model = Matrix4::one();
+
+        let mut translation = Matrix4::one();
+        let position = cgmath::vec4(20.0 + 25.0 * life as f32, 20.0, 0.0, 1.0);
+        translation.replace_col(3, position);
+        model = model.mul_m(&translation);
+
+        let rotation_z = Matrix4::one();
+        model = model.mul_m(&rotation_z);
+
+        let scale = cgmath::vec4(20.0, 30.0, 0.0, 1.0);
+        let scaling = Matrix4::from_diagonal(scale);
+        model = model.mul_m(&scaling);
+
+        let mvp = asteroids.projection.mul_m(&model);
+        let mvp_array: [f32; 16] = *mvp.as_ref();
+
+        unsafe {
+            let (vao, vertices) = *asteroids.state.models.get(&asteroids.entities[0].id).unwrap();
             gl::BindVertexArray(vao);
             gl::UniformMatrix4fv(1, 1, gl::FALSE, mvp_array.as_ptr());
             gl::DrawArrays(gl::LINE_LOOP, 0, vertices as i32);

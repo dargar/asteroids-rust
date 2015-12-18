@@ -12,3 +12,4 @@
 * Resizable window
 * Player lives
 * Player score
+* Font drawing
